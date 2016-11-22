@@ -7,7 +7,7 @@ use Codeception\Configuration;
 use Codeception\Lib\Di;
 use Codeception\Lib\ModuleContainer;
 use Codeception\Util\Template;
-use phpDocumentor\Reflection\DocBlock\Tag;
+use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlockFactory;
 
 class GherkinSteps
@@ -104,15 +104,15 @@ EOF;
         foreach ($this->actions as $method => $module) {
             $docBlock = (new \ReflectionMethod($module, $method))->getDocComment();
 
-            if (empty($docBlock) || empty($gherkinTags)) {
+            if (empty($docBlock)) {
                 $steps = ['given', 'when', 'then'];
                 $gherkinDoc = $this->generateGherkinStepsNotations($steps, $method);
             } else {
                 $docBlock = $dockBlockFactory->create($docBlock);
                 $gherkinTags = $docBlock->getTagsByName('gherkin');
-                /** @var Tag $gherkingTag */
+                /** @var Generic $gherkingTag */
                 $gherkingTag = reset($gherkinTags);
-                $steps = preg_split('/\\s*,\\s*/', '' . $gherkingTag);
+                $steps = preg_split('/\\s*,\\s*/', $gherkingTag->getDescription()->render());
                 $gherkinDoc = $this->generateGherkinStepsNotations($steps, $method);
             }
             $action = 'step_' . $method;
@@ -140,7 +140,7 @@ EOF;
         $lines = [];
         foreach ($steps as $step) {
             $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
-            $lines[] = sprintf('* @%s /I %s/', ucfirst($step), preg_quote(implode(' ', $words)));
+            $lines[] = sprintf('* @%s /I %s/', ucfirst(trim($step)), preg_quote(implode(' ', $words)));
         }
         $doc = implode(PHP_EOL . "\t ", $lines);
         return $doc;

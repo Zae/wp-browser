@@ -9,4 +9,26 @@ class ModuleOne extends Module
     {
 
     }
+
+    /**
+     * @gherkin given
+     */
+    public function doSomethingTwo()
+    {
+
+    }
+    /**
+     * @gherkin when
+     */
+    public function doSomethingThree()
+    {
+
+    }
+    /**
+     * @gherkin then
+     */
+    public function doSomethingFour()
+    {
+
+    }
 }

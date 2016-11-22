@@ -186,6 +186,126 @@ class SteppifyTest extends \Codeception\Test\Unit
         $this->assertContains('@Then /I do something/', $methodDockBlock);
     }
 
+    /**
+     * @test
+     * it should generate given step only if specified
+     */
+    public function it_should_generate_given_step_only_if_specified()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomethingTwo'));
+
+        $doSomethingMethod = $ref->getMethod('step_doSomethingTwo');
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertContains('@Given /I do something two/', $methodDockBlock);
+        $this->assertNotContains('@When /I do something two/', $methodDockBlock);
+        $this->assertNotContains('@Then /I do something two/', $methodDockBlock);
+    }
+
+    /**
+     * @test
+     * it should generate when step only if specified
+     */
+    public function it_should_generate_when_step_only_if_specified()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomethingThree'));
+
+        $doSomethingMethod = $ref->getMethod('step_doSomethingThree');
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertNotContains('@Given /I do something three/', $methodDockBlock);
+        $this->assertContains('@When /I do something three/', $methodDockBlock);
+        $this->assertNotContains('@Then /I do something three/', $methodDockBlock);
+    }
+
+    /**
+     * @test
+     * it should generate then step only if specified
+     */
+    public function it_should_generate_then_step_only_if_specified()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomethingFour'));
+
+        $doSomethingMethod = $ref->getMethod('step_doSomethingFour');
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertNotContains('@Given /I do something four/', $methodDockBlock);
+        $this->assertNotContains('@When /I do something four/', $methodDockBlock);
+        $this->assertContains('@Then /I do something four/', $methodDockBlock);
+    }
+
     protected function _before()
     {
         $this->targetContextFile = Configuration::supportDir() . '/_generated/SteppifytestGherkinSteps.php';
