@@ -1,5 +1,5 @@
 <?php
-namespace Codeception\Lib\Generator;
+namespace tad\WPBrowser\Generator;
 
 use Codeception\Lib\Generator\Shared\Classname;
 use Codeception\Util\Shared\Namespaces;

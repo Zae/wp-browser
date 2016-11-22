@@ -1,14 +1,13 @@
 <?php
 
-namespace Codeception\Command;
+namespace tad\WPBrowser\Command;
 
-use Codeception\Lib\Generator\WPUnit;
-use Codeception\Lib\Generator\WPUnit as WPUnitGenerator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use tad\WPBrowser\Generator\WPUnit;
 
 
 /**
@@ -58,8 +57,8 @@ class GenerateWPUnit extends Command
 	 * @param $config
 	 * @param $class
 	 *
-	 * @return WPUnitGenerator
-	 */
+	 * @return WPUnit
+     */
 	protected function getGenerator($config, $class)
 	{
 		return new WPUnit($config, $class, '\\Codeception\\TestCase\\WPTestCase');

@@ -1,0 +1,4 @@
+class_name: SteppifytestTester
+modules:
+    enabled:
+        - \Helper\Steppifytest

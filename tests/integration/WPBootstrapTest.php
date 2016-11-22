@@ -1,7 +1,6 @@
 <?php
 
 
-use Codeception\Command\WPBootstrap;
 use Ofbeaton\Console\Tester\QuestionTester;
 use org\bovigo\vfs\vfsStream;
 use Symfony\Component\Console\Application;
@@ -10,6 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Yaml\Yaml;
+use tad\WPBrowser\Command\WPBootstrap;
 use function tad\WPBrowser\Tests\Support\rrmdir;
 
 class WPBootstrapTest extends \Codeception\Test\Unit

@@ -1,7 +1,7 @@
 <?php
 
-use Codeception\Command\WPBootstrapPyramid;
 use Symfony\Component\Console\Application;
+use tad\WPBrowser\Command\WPBootstrapPyramid;
 
 require_once dirname(__FILE__) . '/WPBootstrapTest.php';
 

@@ -1,6 +1,7 @@
 <?php
 
-namespace Codeception\Lib\Driver;
+namespace tad\WPBrowser\Driver;
+use Codeception\Lib\Driver\MySql;
 
 /**
  * An extension of Codeception MySql driver.

@@ -1,6 +1,6 @@
 <?php
 
-namespace Codeception\Lib\Generator;
+namespace tad\WPBrowser\Generator;
 
 
 class AcceptanceSuiteConfig extends AbstractGenerator implements GeneratorInterface

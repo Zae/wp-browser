@@ -1,6 +1,6 @@
 <?php
 
-namespace Codeception\Command;
+namespace tad\WPBrowser\Command;
 
 
 use Symfony\Component\Console\Command\Command;

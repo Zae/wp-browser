@@ -1,17 +1,18 @@
 <?php
 
-namespace Codeception\Command;
+namespace tad\WPBrowser\Command;
 
-use Codeception\Lib\Generator\AcceptanceSuiteConfig;
-use Codeception\Lib\Generator\FunctionalSuiteConfig;
-use Codeception\Lib\Generator\IntegrationSuiteConfig;
-use Codeception\Lib\Generator\IntegrationSuiteThemeConfig;
+use Codeception\Command\Bootstrap;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Yaml;
 use tad\WPBrowser\Console\Output\WrappingOutput;
+use tad\WPBrowser\Generator\AcceptanceSuiteConfig;
+use tad\WPBrowser\Generator\FunctionalSuiteConfig;
+use tad\WPBrowser\Generator\IntegrationSuiteConfig;
+use tad\WPBrowser\Generator\IntegrationSuiteThemeConfig;
 use tad\WPBrowser\Interactions\ButlerInterface;
 use tad\WPBrowser\Interactions\WPBootsrapButler;
 

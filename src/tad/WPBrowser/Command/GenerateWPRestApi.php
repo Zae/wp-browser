@@ -1,9 +1,9 @@
 <?php
 
-namespace Codeception\Command;
+namespace tad\WPBrowser\Command;
 
 
-use Codeception\Lib\Generator\WPUnit;
+use tad\WPBrowser\Generator\WPUnit;
 
 class GenerateWPRestApi extends GenerateWPUnit
 {

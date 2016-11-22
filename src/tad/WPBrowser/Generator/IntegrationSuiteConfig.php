@@ -1,10 +1,11 @@
 <?php
 
-namespace Codeception\Lib\Generator;
+namespace tad\WPBrowser\Generator;
 
 
-class IntegrationSuiteThemeConfig extends AbstractGenerator implements GeneratorInterface
+class IntegrationSuiteConfig extends AbstractGenerator implements GeneratorInterface
 {
+
 	public static $requiredSettings = ['className', 'namespace', 'actor'];
 
 	protected $template = <<< YAML
@@ -24,7 +25,6 @@ modules:
             domain: {{domain}}
             adminEmail: {{adminEmail}}
             title: WP Tests
-            theme: {{theme}}
             plugins: {{plugins}}
             activatePlugins: {{plugins}}
             bootstrapActions: []

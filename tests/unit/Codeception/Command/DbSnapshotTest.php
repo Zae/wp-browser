@@ -3,12 +3,12 @@
 namespace Codeception\Command\Tests\Unit;
 
 
-use Codeception\Command\DbSnapshot;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamFile;
 use Prophecy\Argument;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
+use tad\WPBrowser\Command\DbSnapshot;
 
 class DbSnapshotTest extends \PHPUnit_Framework_TestCase
 {

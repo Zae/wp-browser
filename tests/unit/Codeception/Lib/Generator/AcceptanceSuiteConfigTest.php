@@ -2,6 +2,8 @@
 namespace Codeception\Lib\Generator;
 
 
+use tad\WPBrowser\Generator\AcceptanceSuiteConfig;
+
 class AcceptanceSuiteConfigTest extends \Codeception\Test\Unit
 {
 	protected $backupGlobals = false;

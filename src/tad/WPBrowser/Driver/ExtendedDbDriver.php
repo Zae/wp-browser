@@ -1,6 +1,14 @@
 <?php
 
-namespace Codeception\Lib\Driver;
+namespace tad\WPBrowser\Driver;
+
+use Codeception\Lib\Driver\Db;
+use Codeception\Lib\Driver\MsSql;
+use Codeception\Lib\Driver\Oci;
+use Codeception\Lib\Driver\Oracle;
+use Codeception\Lib\Driver\PostgreSql;
+use Codeception\Lib\Driver\Sqlite;
+use Codeception\Lib\Driver\SqlSrv;
 
 include_once dirname(__FILE__) . '/ExtendedMySql.php';
 
