@@ -706,4 +706,50 @@ EOF;
 
         $this->assertContains('@Then /I see element with :name and :color/', $methodDockBlock);
     }
+
+    /**
+     * @test
+     * it should mark optional parameters as optional
+     */
+    public function it_should_mark_optional_parameters_as_optional()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleTwo']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_seeElementInContext'));
+
+        $doSomethingMethod = $ref->getMethod('step_seeElementInContext');
+
+        $parameters = $doSomethingMethod->getParameters();
+
+        $this->assertCount(2, $parameters);
+        $this->assertTrue($parameters[1]->isDefaultValueAvailable());
+        $this->assertNull($parameters[1]->getDefaultValue());
+
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertContains('@Then /I see element in :context/', $methodDockBlock);
+        $this->assertContains('@Then /I see element in :context and :text/', $methodDockBlock);
+    }
 }

@@ -26,8 +26,20 @@ class ModuleTwo extends Module
      *
      * @gherkin then
      */
-    public function seeElementWithColor($name,$color)
+    public function seeElementWithColor($name, $color)
     {
 
     }
+
+    /**
+     * @param string $context
+     * @param string $text
+     *
+     * @gherkin then
+     */
+    public function seeElementInContext($context, $text = null)
+    {
+
+    }
+
 }

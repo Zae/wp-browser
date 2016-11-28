@@ -178,9 +178,6 @@ EOF;
         $parameterString = '';
         $parameterNames = [];
         if (!empty($parameters)) {
-            $parameterString .= ' ' . implode(' and ', array_map(function (\ReflectionParameter $parameter) {
-                    return ':' . $parameter->getName();
-                }, $parameters));
             $parameterNames = array_map(function (\ReflectionParameter $parameter) {
                 return $parameter->getName();
             }, $parameters);
@@ -188,13 +185,29 @@ EOF;
 
         $lines = [];
         foreach ($steps as $step) {
+            $lastLineIndex = empty($lines) ? 0 : count($lines);
+
             $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
             $words = array_diff($words, $parameterNames);
-            $lines[] = sprintf('* @%s /I %s%s/', ucfirst(trim($step)), preg_quote(implode(' ', $words)),
-                $parameterString);
+
+            $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
+                preg_quote(implode(' ', $words)));
+
+            foreach ($parameters as $parameter) {
+                if (!$parameter->isDefaultValueAvailable()) {
+                    $lines[$lastLineIndex] = $lastLine = array_search($parameter, $parameters) !== $lastLineIndex ?
+                        sprintf('%s and :%s', $lines[$lastLineIndex], $parameter->getName()) :
+                        sprintf('%s :%s', $lines[$lastLineIndex], $parameter->getName());
+                } else {
+                    $lastLine = sprintf('%s and :%s', $lastLine, $parameter->getName());
+                    $lines[] = $lastLine;
+                }
+            }
         }
 
-        $doc = implode(PHP_EOL . "\t ", $lines);
+        $doc = implode(PHP_EOL . "\t ", array_map(function ($line) {
+            return $line . '/';
+        }, $lines));
 
         return $doc;
     }
@@ -259,14 +272,20 @@ EOF;
         }
 
         $name = $parameter->getName();
-        $defaultValue = $parameter->isOptional() ? $parameter->getDefaultValue() : false;
+        $defaultValue = $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : false;
 
-        if (empty($defaultValue) && empty($type)) {
+        $noDefaultValue = empty($parameter->isDefaultValueAvailable()) || is_array($defaultValue);
+        if ($noDefaultValue && empty($type)) {
             return sprintf('$%s', $name);
-        } elseif (empty($defaultValue)) {
+        } elseif ($noDefaultValue) {
             return sprintf('%s $%s', $type, $name);
         } else {
-            $defaultValue = is_string($defaultValue) ? "'" . $defaultValue . "'" : $defaultValue;
+            if ($defaultValue === null) {
+                $defaultValue = 'null';
+            } elseif (is_string($defaultValue)) {
+                $defaultValue = "'" . $defaultValue . "'";
+            }
+
             return sprintf('%s $%s = %s', $type, $name, $defaultValue);
         }
     }
