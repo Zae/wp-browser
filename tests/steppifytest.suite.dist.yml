@@ -2,3 +2,15 @@ class_name: SteppifytestTester
 modules:
     enabled:
         - \Helper\Steppifytest
+        - WPDb
+    config:
+        WPDb:
+            dsn: 'mysql:host=127.0.0.1;dbname=test'
+            user: 'root'
+            password: ''
+            dump: 'tests/_data/dump.sql'
+            populate: true
+            cleanup: true
+            reconnect: false
+            url: 'http://wordpress.dev'
+            tablePrefix: 'wp_'

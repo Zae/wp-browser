@@ -20,8 +20,8 @@ use tad\WPBrowser\Generator\WPUnit;
  */
 class GenerateWPUnit extends Command
 {
-	use Shared\FileSystem;
-	use Shared\Config;
+	use \Codeception\Command\Shared\FileSystem;
+	use \Codeception\Command\Shared\Config;
 
 	const SLUG = "generate:wpunit";
 

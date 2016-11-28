@@ -4,6 +4,7 @@ namespace tad\WPBrowser\Generator;
 
 
 use Codeception\Configuration;
+use Codeception\Exception\ConfigurationException;
 use Codeception\Lib\Di;
 use Codeception\Lib\ModuleContainer;
 use Codeception\Util\Template;
@@ -22,6 +23,34 @@ namespace {{namespace}}_generated;
 
 trait {{name}}GherkinSteps{{postfix}}
 {
+        
+    /**
+     * [!] Utility method is generated from steppify task.
+     *
+     * Converts any TableNode found in an array to an array of associative arrays.
+     *
+     * @param array \$args An array of arguments that should be parsed to convert TableNode
+     *              to arrays.
+     * @param array \$iterations Passed by reference; will be set to empty array if there
+     *              there are no TableNode arguments among the arguments, will be set to
+     *              an array of function call arguments if found.
+     */
+    public function _convertTableNodesToArrays(array \$args, &\$iterations = []) {
+        foreach(\$args as \$key => \$value) {
+            if(is_a(\$value, 'Behat\Gherkin\Node\TableNode')){
+                \$rows = \$value->getRows();
+                \$keys = array_shift(\$rows);
+                \$array_value = array_map(function(array \$row) use (\$keys) {
+                    return array_combine(\$keys,\$row);
+                }, \$rows);
+                
+                \$iterations[] = array_replace(\$args, [\$key => \$array_value]);
+            }
+        }
+        
+        return \$args;
+    }
+    
     {{methods}}
 }
 
@@ -36,7 +65,18 @@ EOF;
      * @see \{{module}}::{{method}}()
      */
     public function {{action}}({{params}}) {
-        return \$this->getScenario()->runStep(new \Codeception\Step\Action('{{method}}', func_get_args()));
+        \$args = \$this->_convertTableNodesToArrays(func_get_args(), \$iterations);
+        
+        if(!empty(\$iterations)) {
+            \$returnValues = [];
+            foreach(\$iterations as \$iteration){
+                \$returnValues[] = \$this->getScenario()->runStep(new \Codeception\Step\Action('{{method}}', \$iteration));
+            }
+            
+            return \$returnValues;
+        }
+        
+        return \$this->getScenario()->runStep(new \Codeception\Step\Action('{{method}}', \$args));
     }
 EOF;
 
@@ -99,31 +139,24 @@ EOF;
     {
         // generate the method template
         $methods = [];
-        $dockBlockFactory = DocBlockFactory::createInstance();
-
         foreach ($this->actions as $method => $module) {
-            $docBlock = (new \ReflectionMethod($module, $method))->getDocComment();
-
-            if (empty($docBlock)) {
-                $steps = ['given', 'when', 'then'];
-                $gherkinDoc = $this->generateGherkinStepsNotations($steps, $method);
-            } else {
-                $docBlock = $dockBlockFactory->create($docBlock);
-                $gherkinTags = $docBlock->getTagsByName('gherkin');
-                /** @var Generic $gherkingTag */
-                $gherkingTag = reset($gherkinTags);
-                $steps = preg_split('/\\s*,\\s*/', $gherkingTag->getDescription()->render());
-                $gherkinDoc = $this->generateGherkinStepsNotations($steps, $method);
+            if (!class_exists($module)) {
+                $module = '\\Codeception\\Module\\' . $module;
+                if (!class_exists($module)) {
+                    throw new ConfigurationException("Module '{$module}' does not exist.");
+                }
             }
-            $action = 'step_' . $method;
-            $params = '';
+
+            if ($this->shouldSkipMethod($module, $method)) {
+                continue;
+            }
 
             $methods[] = (new Template($this->methodTemplate))
                 ->place('module', ltrim($module, '\\'))
                 ->place('method', $method)
-                ->place('gherkinDoc', $gherkinDoc)
-                ->place('action', $action)
-                ->place('params', $params)
+                ->place('gherkinDoc', $this->getGherkingDoc($module, $method))
+                ->place('action', 'step_' . $method)
+                ->place('params', $this->getParams($module, $method))
                 ->produce();
         }
 
@@ -144,5 +177,100 @@ EOF;
         }
         $doc = implode(PHP_EOL . "\t ", $lines);
         return $doc;
+    }
+
+    /**
+     * @param string $module
+     * @param string $method
+     *
+     * @return string
+     */
+    protected function getGherkingDoc($module, $method)
+    {
+        $docBlockFactory = DocBlockFactory::createInstance();
+        $docComment = (new \ReflectionMethod($module, $method))->getDocComment();
+        $steps = ['given', 'when', 'then'];
+
+        if (empty($docComment)) {
+            $gherkinDoc = $this->generateGherkinStepsNotations($steps, $method);
+            return $gherkinDoc;
+        } else {
+            $docBlock = $docBlockFactory->create($docComment);
+            $gherkinTags = $docBlock->getTagsByName('gherkin');
+
+            if (!empty($gherkinTags)) {
+                /** @var Generic $gherkingTag */
+                $gherkingTag = reset($gherkinTags);
+                $steps = preg_split('/\\s*,\\s*/', $gherkingTag->getDescription()->render());
+            }
+        }
+
+        return $this->generateGherkinStepsNotations($steps, $method);
+    }
+
+    /**
+     * @param string $module
+     * @param string $method
+     *
+     * @return string
+     */
+    protected function getParams($module, $method)
+    {
+        $method = new \ReflectionMethod($module, $method);
+
+        $params = $method->getParameters();
+
+        if (empty($params)) {
+            return '';
+        }
+
+        return implode(', ', array_map([$this, 'getEntryForParameter'], $params));
+    }
+
+    /**
+     * @param \ReflectionParameter $parameter
+     *
+     * @return string
+     */
+    protected function getEntryForParameter(\ReflectionParameter $parameter)
+    {
+        $type = $parameter->hasType() ? $parameter->getType() : $parameter->getClass();
+
+        if (!empty($type)) {
+            $type = $type->isBuiltin() && $type->__toString() === 'array' ? '\Behat\Gherkin\Node\TableNode' : $type->__toString();
+        }
+
+        $name = $parameter->getName();
+        $defaultValue = $parameter->isOptional() ? $parameter->getDefaultValue() : false;
+
+        if (empty($defaultValue) && empty($type)) {
+            return sprintf('$%s', $name);
+        } elseif (empty($defaultValue)) {
+            return sprintf('%s $%s', $type, $name);
+        } else {
+            $defaultValue = is_string($defaultValue) ? "'" . $defaultValue . "'" : $defaultValue;
+            return sprintf('%s $%s = %s', $type, $name, $defaultValue);
+        }
+    }
+
+    protected function shouldSkipMethod($module, $method)
+    {
+        $docBlockFactory = DocBlockFactory::createInstance();
+        $docBlock = (new \ReflectionMethod($module, $method))->getDocComment();
+
+        if (empty($docBlock)) {
+            return false;
+        }
+
+        $docBlock = $docBlockFactory->create($docBlock);
+        $gherkinTags = $docBlock->getTagsByName('gherkin');
+
+        if (empty($gherkinTags)) {
+            return false;
+        }
+
+        /** @var Generic $tag */
+        $tag = $gherkinTags[0];
+        return preg_match('/(N|n)(o|O)/', $tag->getDescription()->render());
     }
 }

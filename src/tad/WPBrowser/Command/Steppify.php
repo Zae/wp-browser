@@ -4,8 +4,8 @@ namespace tad\WPBrowser\Command;
 
 
 use Codeception\Command\ActorGenerator;
-use Codeception\Command\Shared\Config;
-use Codeception\Command\Shared\FileSystem;
+use \Codeception\Command\Shared\Config;
+use \Codeception\Command\Shared\FileSystem;
 use Codeception\Configuration;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;

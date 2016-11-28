@@ -43,6 +43,7 @@ $app->add(new tad\WPBrowser\Command\GeneratePhpunitBootstrap('generate:phpunitBo
 $app->add(new tad\Codeception\Command\SearchReplace('search-replace'));
 $app->add(new tad\Codeception\Command\Setup('setup'));
 $app->add(new tad\Codeception\Command\SetupScaffold('setup:scaffold'));
+$app->add(new tad\WPBrowser\Command\Steppify('gherkin:steppify'));
 
 // wpcept specific commands
 $app->add(new tad\WPBrowser\Command\DbSnapshot('db:snapshot'));

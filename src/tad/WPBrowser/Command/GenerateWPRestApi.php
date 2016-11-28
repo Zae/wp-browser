@@ -7,8 +7,8 @@ use tad\WPBrowser\Generator\WPUnit;
 
 class GenerateWPRestApi extends GenerateWPUnit
 {
-	use Shared\FileSystem;
-	use Shared\Config;
+	use \Codeception\Command\Shared\FileSystem;
+	use \Codeception\Command\Shared\Config;
 
 	const SLUG = 'generate:wprest';
 

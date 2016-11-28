@@ -1,7 +1,11 @@
 <?php
 
 
+use Behat\Gherkin\Node\TableNode;
 use Codeception\Configuration;
+use Codeception\Scenario;
+use Codeception\Step\Action;
+use Codeception\Util\Template;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Yaml\Yaml;
@@ -37,6 +41,23 @@ class SteppifyTest extends \Codeception\Test\Unit
      * @var FilesystemIterator
      */
     protected $testModules;
+    protected $classTemplate = <<< EOF
+class {{name}} {
+
+    use {{trait}};
+
+    protected \$scenario;
+    
+    public function __construct(\$scenario) {
+        \$this->scenario = \$scenario;
+    }
+
+    protected function getScenario() {
+        return \$this->scenario;
+    }
+}
+EOF;
+
 
     /**
      * @test
@@ -132,18 +153,33 @@ class SteppifyTest extends \Codeception\Test\Unit
      */
     public function it_should_not_generate_any_method_if_the_suite_tester_class_contains_no_methods()
     {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleZero']);
+
         $app = new Application();
         $this->addCommand($app);
         $command = $app->find('steppify');
         $commandTester = new CommandTester($command);
 
+        $id = uniqid();
+
         $commandTester->execute([
             'command' => $command->getName(),
             'suite' => 'steppifytest',
+            '--postfix' => $id
         ]);
 
-        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps');
-        $this->assertEmpty($ref->getMethods());
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+        $methods = $ref->getMethods();
+
+        $this->assertEmpty(array_filter($methods, function (ReflectionMethod $method) {
+            // exclude utility methods
+            return !preg_match('/^_/', $method->name);
+        }));
     }
 
     /**
@@ -306,13 +342,192 @@ class SteppifyTest extends \Codeception\Test\Unit
         $this->assertContains('@Then /I do something four/', $methodDockBlock);
     }
 
+    /**
+     * @test
+     * it should pass string arguments directly to original method
+     */
+    public function it_should_pass_string_arguments_directly_to_original_method()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $trait = '_generated\\' . $class;
+        $this->assertTrue(trait_exists($trait));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomethingWithStringOne'));
+
+        $doSomethingMethod = $ref->getMethod('step_doSomethingWithStringOne');
+
+        $parameters = $doSomethingMethod->getParameters();
+
+        $this->assertNotEmpty($parameters);
+        $this->assertTrue($parameters[0]->name === 'arg1');
+    }
+
+    /**
+     * @test
+     * it should allow defaulting string arguments
+     */
+    public function it_should_allow_defaulting_string_arguments()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $trait = '_generated\\' . $class;
+        $this->assertTrue(trait_exists($trait));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomethingWithStringTwo'));
+
+        $doSomethingMethod = $ref->getMethod('step_doSomethingWithStringTwo');
+
+        $parameters = $doSomethingMethod->getParameters();
+
+        $this->assertNotEmpty($parameters);
+        $this->assertTrue($parameters[0]->name === 'arg1');
+        $this->assertTrue($parameters[0]->isOptional());
+        $this->assertTrue($parameters[0]->getDefaultValue() === 'foo');
+    }
+
+    /**
+     * @test
+     * it should allow preventing a method from generating a gherking step marking it with @gherkin no
+     */
+    public function it_should_allow_preventing_a_method_from_generating_a_gherking_step_marking_it_with_gherkin_no()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $trait = '_generated\\' . $class;
+        $this->assertTrue(trait_exists($trait));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertFalse($ref->hasMethod('step_noGherkin'));
+    }
+
+    /**
+     * @test
+     * it should translate array parameters to multiple calls to base method
+     */
+    public function it_should_translate_array_parameters_to_multiple_calls_to_base_method()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $trait = '_generated\\' . $class;
+        $this->assertTrue(trait_exists($trait));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomethingWithArray'));
+
+        $parameters = (new ReflectionMethod($trait, 'step_doSomethingWithArray'))->getParameters();
+
+        /** @var ReflectionParameter $first */
+        $first = $parameters[0];
+        $this->assertEquals(TableNode::class, $first->getClass()->name);
+
+        $method = $arguments = '';
+
+        $instance = $this->getInstanceForTrait($trait, $id, $method, $arguments);
+
+        $table = new TableNode([
+            ['keyOne', 'keyTwo', 'keyThree'],
+            ['foo', 'baz', 'bar'],
+            [23, 'foo', 'baz'],
+        ]);
+
+        $instance->step_doSomethingWithArray($table);
+
+        $this->assertEquals('doSomethingWithArray', $method);
+        $expected = json_encode([
+            ['keyOne' => 'foo', 'keyTwo' => 'baz', 'keyThree' => 'bar'],
+            ['keyOne' => 23, 'keyTwo' => 'foo', 'keyThree' => 'baz'],
+        ]);
+        $this->assertEquals($expected, $arguments);
+    }
+
+
     protected function _before()
     {
         $this->targetContextFile = Configuration::supportDir() . '/_generated/SteppifytestGherkinSteps.php';
         $this->targetSuiteConfigFile = codecept_root_dir('tests/steppifytest.suite.dist.yml');
         $this->suiteConfigBackup = codecept_root_dir('tests/steppifytest.suite.dist.yml.backup');
 
-        $this->testModules = new FilesystemIterator(codecept_data_dir('modules'), FilesystemIterator::CURRENT_AS_PATHNAME);
+        $this->testModules = new FilesystemIterator(codecept_data_dir('modules'),
+            FilesystemIterator::CURRENT_AS_PATHNAME);
     }
 
     protected function _after()
@@ -349,5 +564,36 @@ class SteppifyTest extends \Codeception\Test\Unit
 
         $this->targetSuiteConfig['modules']['enabled'] = $modules;
         file_put_contents($this->targetSuiteConfigFile, Yaml::dump($this->targetSuiteConfig));
+    }
+
+    /**
+     * @param $trait
+     * @param $id
+     * @param $method
+     * @param $arguments
+     */
+    protected function getInstanceForTrait($trait, $id, &$method, &$arguments)
+    {
+        $className = 'ClassUsing_' . $id;
+        $classCode = (new Template($this->classTemplate))
+            ->place('name', $className)
+            ->place('trait', $trait)
+            ->produce();
+
+        eval($classCode);
+
+        /** @var Scenario $scenario */
+        $scenario = $this->prophesize(Scenario::class);
+        $scenario->runStep(Prophecy\Argument::type(Action::class))->will(function (array $args) use (
+            &$method,
+            &
+            $arguments
+        ) {
+            $action = $args[0];
+            $method = $action->getAction();
+            $arguments = $action->getArgumentsAsString();
+        });
+
+        return $instance = new $className($scenario->reveal());
     }
 }
