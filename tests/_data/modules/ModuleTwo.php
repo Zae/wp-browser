@@ -42,4 +42,12 @@ class ModuleTwo extends Module
 
     }
 
+    /**
+     * @gherkin given
+     */
+    public function haveElementWithColorAndSize($element, $color, $size)
+    {
+
+    }
+
 }

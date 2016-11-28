@@ -752,4 +752,43 @@ EOF;
         $this->assertContains('@Then /I see element in :context/', $methodDockBlock);
         $this->assertContains('@Then /I see element in :context and :text/', $methodDockBlock);
     }
+
+    /**
+     * @test
+     * it should replace words with parameter names when found
+     */
+    public function it_should_replace_words_with_parameter_names_when_found()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleTwo']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_haveElementWithColorAndSize'));
+
+        $doSomethingMethod = $ref->getMethod('step_haveElementWithColorAndSize');
+
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertContains('@Given /I have :element with :color and :size/', $methodDockBlock);
+    }
 }
