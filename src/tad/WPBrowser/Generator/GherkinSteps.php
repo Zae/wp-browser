@@ -79,6 +79,7 @@ EOF;
         return \$this->getScenario()->runStep(new \Codeception\Step\Action('{{method}}', \$args));
     }
 EOF;
+    protected $stopWords = ['and', 'or', 'with', 'to'];
 
     /**
      * @var string
@@ -183,7 +184,18 @@ EOF;
         }
 
         $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
-        $words = array_diff($words, $parameterNames);
+
+        $wordsWithoutStopwords = $parameterNamesAndStopwords = [];
+        for ($i = 0; $i < count($words); $i++) {
+            if (false !== ($parameterPos = array_search($words[$i], $parameterNames))) {
+                $stopWord = $i > 0 && in_array($words[$i - 1], $this->stopWords) ?
+                    $words[$i - 1] : 'and';
+                $parameterNamesAndStopwords[$parameterNames[$parameterPos]] = $stopWord;
+                continue;
+            }
+
+            $wordsWithoutStopwords[] = $words[$i];
+        }
 
         $lines = [];
         foreach ($steps as $step) {
