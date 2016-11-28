@@ -175,7 +175,6 @@ EOF;
         $ref = new \ReflectionMethod($module, $method);
         $parameters = $ref->getParameters();
 
-        $parameterString = '';
         $parameterNames = [];
         if (!empty($parameters)) {
             $parameterNames = array_map(function (\ReflectionParameter $parameter) {
@@ -183,12 +182,12 @@ EOF;
             }, $parameters);
         }
 
+        $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
+        $words = array_diff($words, $parameterNames);
+
         $lines = [];
         foreach ($steps as $step) {
             $lastLineIndex = empty($lines) ? 0 : count($lines);
-
-            $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
-            $words = array_diff($words, $parameterNames);
 
             $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
                 preg_quote(implode(' ', $words)));
