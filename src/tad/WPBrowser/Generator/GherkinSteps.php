@@ -164,18 +164,38 @@ EOF;
     }
 
     /**
-     * @param $steps
-     * @param $method
+     * @param array $steps
+     * @param string $module
+     * @param string $method
+     *
      * @return string
      */
-    protected function generateGherkinStepsNotations($steps, $method)
+    protected function generateGherkinStepsNotations($steps, $module, $method)
     {
+        $ref = new \ReflectionMethod($module, $method);
+        $parameters = $ref->getParameters();
+
+        $parameterString = '';
+        $parameterNames = [];
+        if (!empty($parameters)) {
+            $parameterString .= ' ' . implode(' and ', array_map(function (\ReflectionParameter $parameter) {
+                    return ':' . $parameter->getName();
+                }, $parameters));
+            $parameterNames = array_map(function (\ReflectionParameter $parameter) {
+                return $parameter->getName();
+            }, $parameters);
+        }
+
         $lines = [];
         foreach ($steps as $step) {
             $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
-            $lines[] = sprintf('* @%s /I %s/', ucfirst(trim($step)), preg_quote(implode(' ', $words)));
+            $words = array_diff($words, $parameterNames);
+            $lines[] = sprintf('* @%s /I %s%s/', ucfirst(trim($step)), preg_quote(implode(' ', $words)),
+                $parameterString);
         }
+
         $doc = implode(PHP_EOL . "\t ", $lines);
+
         return $doc;
     }
 
@@ -191,10 +211,7 @@ EOF;
         $docComment = (new \ReflectionMethod($module, $method))->getDocComment();
         $steps = ['given', 'when', 'then'];
 
-        if (empty($docComment)) {
-            $gherkinDoc = $this->generateGherkinStepsNotations($steps, $method);
-            return $gherkinDoc;
-        } else {
+        if (!empty($docComment)) {
             $docBlock = $docBlockFactory->create($docComment);
             $gherkinTags = $docBlock->getTagsByName('gherkin');
 
@@ -205,7 +222,7 @@ EOF;
             }
         }
 
-        return $this->generateGherkinStepsNotations($steps, $method);
+        return $this->generateGherkinStepsNotations($steps, $module, $method);
     }
 
     /**
@@ -234,7 +251,12 @@ EOF;
      */
     protected function getEntryForParameter(\ReflectionParameter $parameter)
     {
-        $type = $parameter->isArray() ? '\Behat\Gherkin\Node\TableNode' : $parameter->getClass();
+        if ($parameter->isArray()) {
+            $type = '\Behat\Gherkin\Node\TableNode';
+        } else {
+            $class = $parameter->getClass();
+            $type = empty($class) ? '' : $class->getName();
+        }
 
         $name = $parameter->getName();
         $defaultValue = $parameter->isOptional() ? $parameter->getDefaultValue() : false;

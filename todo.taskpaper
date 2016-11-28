@@ -1,6 +1,7 @@
 Add:
+    - Steppify command:
+        - "dont" should be "don't"
+        - provide way to configure which methods to pick using .yml file
     - add/overwrite wpcept specific commands using Codeception provided events
-    - "WPLoder" using suites should run each in isolation
-    - gherkin translation of all WPBrowser methods
 	- WpWebDriver:
 		- ui/admin acceptance classes

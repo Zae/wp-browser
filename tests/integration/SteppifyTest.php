@@ -596,4 +596,114 @@ EOF;
 
         return $instance = new $className($scenario->reveal());
     }
+
+    /**
+     * @test
+     * it should create steps from more than one module
+     */
+    public function it_should_create_steps_from_more_than_one_module()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleOne', '\tad\WPBrowser\Tests\ModuleTwo']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_doSomething'));
+        $this->assertTrue($ref->hasMethod('step_seeSomething'));
+    }
+
+    /**
+     * @test
+     * it should add placeholders for methods in doc
+     */
+    public function it_should_add_placeholders_for_methods_in_doc()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleTwo']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_seeElement'));
+
+        $doSomethingMethod = $ref->getMethod('step_seeElement');
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertContains('@Then /I see element :name/', $methodDockBlock);
+    }
+
+    /**
+     * @test
+     * it should join multiple arguments with and
+     */
+    public function it_should_join_multiple_arguments_with_and()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleTwo']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_seeElementWithColor'));
+
+        $doSomethingMethod = $ref->getMethod('step_seeElementWithColor');
+        $methodDockBlock = $doSomethingMethod->getDocComment();
+
+        $this->assertContains('@Then /I see element with :name and :color/', $methodDockBlock);
+    }
 }
