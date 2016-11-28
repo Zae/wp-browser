@@ -234,7 +234,7 @@ EOF;
      */
     protected function getEntryForParameter(\ReflectionParameter $parameter)
     {
-        $type = $parameter->hasType() ? $parameter->getType() : $parameter->getClass();
+        $type = $parameter->getType() ? $parameter->getType() : $parameter->getClass();
 
         if (!empty($type)) {
             $type = $type->isBuiltin() && $type->__toString() === 'array' ? '\Behat\Gherkin\Node\TableNode' : $type->__toString();
