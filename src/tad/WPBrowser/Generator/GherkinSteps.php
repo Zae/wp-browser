@@ -79,7 +79,7 @@ EOF;
         return \$this->getScenario()->runStep(new \Codeception\Step\Action('{{method}}', \$args));
     }
 EOF;
-    protected $stopWords = ['and', 'or', 'with', 'to'];
+    protected $stopWords = ['see', 'have', 'and', 'or', 'with', 'to'];
 
     /**
      * @var string
@@ -183,18 +183,18 @@ EOF;
             }, $parameters);
         }
 
-        $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
+        $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
 
-        $wordsWithoutStopwords = $parameterNamesAndStopwords = [];
+        $parameterNamesAndStopwords = [];
         for ($i = 0; $i < count($words); $i++) {
             if (false !== ($parameterPos = array_search($words[$i], $parameterNames))) {
                 $stopWord = $i > 0 && in_array($words[$i - 1], $this->stopWords) ?
                     $words[$i - 1] : 'and';
                 $parameterNamesAndStopwords[$parameterNames[$parameterPos]] = $stopWord;
+                unset($wordsWithoutStopwords[$i]);
+                unset($wordsWithoutStopwords[$i - 1]);
                 continue;
             }
-
-            $wordsWithoutStopwords[] = $words[$i];
         }
 
         $lines = [];
@@ -202,15 +202,19 @@ EOF;
             $lastLineIndex = empty($lines) ? 0 : count($lines);
 
             $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
-                preg_quote(implode(' ', $words)));
+                implode(' ', $wordsWithoutStopwords));
 
             foreach ($parameters as $parameter) {
+                $parameterName = $parameter->getName();
+                $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
+                    $parameterNamesAndStopwords[$parameterName]
+                    : 'and';
                 if (!$parameter->isDefaultValueAvailable()) {
                     $lines[$lastLineIndex] = $lastLine = array_search($parameter, $parameters) !== $lastLineIndex ?
-                        sprintf('%s and :%s', $lines[$lastLineIndex], $parameter->getName()) :
-                        sprintf('%s :%s', $lines[$lastLineIndex], $parameter->getName());
+                        sprintf('%s %s :%s', $lines[$lastLineIndex], $stopWord, $parameterName) :
+                        sprintf('%s :%s', $lines[$lastLineIndex], $parameterName);
                 } else {
-                    $lastLine = sprintf('%s and :%s', $lastLine, $parameter->getName());
+                    $lastLine = sprintf('%s %s :%s', $lastLine, $stopWord, $parameterName);
                     $lines[] = $lastLine;
                 }
             }
