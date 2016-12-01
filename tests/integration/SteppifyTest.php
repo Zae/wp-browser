@@ -237,8 +237,8 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_doSomething'));
 
-        $doSomethingMethod = $ref->getMethod('step_doSomething');
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $reflectedMethod = $ref->getMethod('step_doSomething');
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertContains('@Given /I do something/', $methodDockBlock);
         $this->assertContains('@When /I do something/', $methodDockBlock);
@@ -277,8 +277,8 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_doSomethingTwo'));
 
-        $doSomethingMethod = $ref->getMethod('step_doSomethingTwo');
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $reflectedMethod = $ref->getMethod('step_doSomethingTwo');
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertContains('@Given /I do something two/', $methodDockBlock);
         $this->assertNotContains('@When /I do something two/', $methodDockBlock);
@@ -317,8 +317,8 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_doSomethingThree'));
 
-        $doSomethingMethod = $ref->getMethod('step_doSomethingThree');
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $reflectedMethod = $ref->getMethod('step_doSomethingThree');
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertNotContains('@Given /I do something three/', $methodDockBlock);
         $this->assertContains('@When /I do something three/', $methodDockBlock);
@@ -357,8 +357,8 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_doSomethingFour'));
 
-        $doSomethingMethod = $ref->getMethod('step_doSomethingFour');
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $reflectedMethod = $ref->getMethod('step_doSomethingFour');
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertNotContains('@Given /I do something four/', $methodDockBlock);
         $this->assertNotContains('@When /I do something four/', $methodDockBlock);
@@ -398,9 +398,9 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_doSomethingWithStringOne'));
 
-        $doSomethingMethod = $ref->getMethod('step_doSomethingWithStringOne');
+        $reflectedMethod = $ref->getMethod('step_doSomethingWithStringOne');
 
-        $parameters = $doSomethingMethod->getParameters();
+        $parameters = $reflectedMethod->getParameters();
 
         $this->assertNotEmpty($parameters);
         $this->assertTrue($parameters[0]->name === 'arg1');
@@ -439,9 +439,9 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_doSomethingWithStringTwo'));
 
-        $doSomethingMethod = $ref->getMethod('step_doSomethingWithStringTwo');
+        $reflectedMethod = $ref->getMethod('step_doSomethingWithStringTwo');
 
-        $parameters = $doSomethingMethod->getParameters();
+        $parameters = $reflectedMethod->getParameters();
 
         $this->assertNotEmpty($parameters);
         $this->assertTrue($parameters[0]->name === 'arg1');
@@ -639,8 +639,8 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_seeElement'));
 
-        $doSomethingMethod = $ref->getMethod('step_seeElement');
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $reflectedMethod = $ref->getMethod('step_seeElement');
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertContains('@Then /I see element :name/', $methodDockBlock);
     }
@@ -677,8 +677,8 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_seeElementWithColor'));
 
-        $doSomethingMethod = $ref->getMethod('step_seeElementWithColor');
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $reflectedMethod = $ref->getMethod('step_seeElementWithColor');
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertContains('@Then /I see element :name with color :color/', $methodDockBlock);
     }
@@ -715,15 +715,15 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_seeElementInContext'));
 
-        $doSomethingMethod = $ref->getMethod('step_seeElementInContext');
+        $reflectedMethod = $ref->getMethod('step_seeElementInContext');
 
-        $parameters = $doSomethingMethod->getParameters();
+        $parameters = $reflectedMethod->getParameters();
 
         $this->assertCount(2, $parameters);
         $this->assertTrue($parameters[1]->isDefaultValueAvailable());
         $this->assertNull($parameters[1]->getDefaultValue());
 
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         // public function seeElementInContext($context, $text = null)
 
@@ -763,11 +763,52 @@ EOF;
 
         $this->assertTrue($ref->hasMethod('step_haveElementWithColorAndSize'));
 
-        $doSomethingMethod = $ref->getMethod('step_haveElementWithColorAndSize');
+        $reflectedMethod = $ref->getMethod('step_haveElementWithColorAndSize');
 
-        $methodDockBlock = $doSomethingMethod->getDocComment();
+        $methodDockBlock = $reflectedMethod->getDocComment();
 
         $this->assertContains('@Given /I  have element :element with color :color and size :size/', $methodDockBlock);
+    }
+
+    /**
+     * @test
+     * it should support complex methods name and optional arguments
+     */
+    public function it_should_support_complex_methods_name_and_optional_arguments()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleThree']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_haveShapeWithColorAndSize'));
+
+        $reflectedMethod = $ref->getMethod('step_haveShapeWithColorAndSize');
+
+        $methodDockBlock = $reflectedMethod->getDocComment();
+
+        $this->assertContains('@Given /I  have shape :shape/', $methodDockBlock);
+        $this->assertContains('@Given /I  have shape :shape with color :color/', $methodDockBlock);
+        $this->assertContains('@Given /I  have shape :shape with color :color and size :size/', $methodDockBlock);
     }
 
     protected function _before()
