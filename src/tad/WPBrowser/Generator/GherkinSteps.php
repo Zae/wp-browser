@@ -220,73 +220,7 @@ EOF;
         $ref = new \ReflectionMethod($module, $method);
         $parameters = $ref->getParameters();
 
-        $parameterNames = [];
-        if (!empty($parameters)) {
-            $parameterNames = array_map(function (\ReflectionParameter $parameter) {
-                return $parameter->getName();
-            }, $parameters);
-        }
-
-        $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
-
-        $parameterNamesAndStopwords = [];
-
-        for ($i = 0; $i < count($words); $i++) {
-            if (false !== ($parameterPos = array_search($words[$i], $parameterNames))) {
-                $stopWordAndParameterName = $i > 0 && in_array($words[$i - 1], $this->stopWords) ?
-                    $words[$i - 1] : 'and';
-                $parameterNamesAndStopwords[$parameterNames[$parameterPos]] = $stopWordAndParameterName;
-                unset($wordsWithoutStopwords[$i]);
-                unset($wordsWithoutStopwords[$i - 1]);
-                continue;
-            }
-        }
-
-        $lines = [];
-        foreach ($steps as $step) {
-            $lastLineIndex = empty($lines) ? 0 : count($lines);
-
-            $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
-                implode(' ', $wordsWithoutStopwords));
-
-            foreach ($parameters as $parameter) {
-                $parameterName = $parameter->getName();
-                $parameterPosition = array_search($parameterName, $parameterNames);
-
-                $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
-                    $parameterNamesAndStopwords[$parameterName]
-                    : 'and';
-
-                if (0 !== $parameterPosition ||
-                    (isset($parameterNamesAndStopwords[$parameterName])
-                        && in_array($parameterNamesAndStopwords[$parameterName], $this->jumpingStopWords)
-                    )
-                ) {
-                    $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
-                        $parameterNamesAndStopwords[$parameterName]
-                        : 'and';
-                    $stopWordAndParameterName = $stopWord . ' ' . $parameterName;
-                } else {
-                    $stopWordAndParameterName = $parameterName;
-                }
-                if (!$parameter->isDefaultValueAvailable()) {
-                    $lineFrags = explode(' ', $lines[$lastLineIndex]);
-                    $lineLastWord = end($lineFrags);
-                    if (!in_array($lineLastWord, $this->stopWords)
-                        && $parameterPosition === 0
-                        && !in_array($stopWord, $this->jumpingStopWords)
-                    ) {
-                        $resultLine = sprintf('%s :%s', $lines[$lastLineIndex], $parameterName);
-                    } else {
-                        $resultLine = sprintf('%s %s :%s', $lines[$lastLineIndex], $stopWordAndParameterName, $parameterName);
-                    }
-                    $lines[$lastLineIndex] = $lastLine = $resultLine;
-                } else {
-                    $lastLine = sprintf('%s %s :%s', $lastLine, $stopWordAndParameterName, $parameterName);
-                    $lines[] = $lastLine;
-                }
-            }
-        }
+        $lines = $this->getGherkinNotationLinesFor($method, $parameters, $steps);
 
         $doc = implode(PHP_EOL . "\t ", array_map(function ($line) {
             return $line . '/';
@@ -350,5 +284,94 @@ EOF;
 
             return sprintf('%s $%s = %s', $type, $name, $defaultValue);
         }
+    }
+
+    /**
+     * @param \ReflectionMethod $method
+     * @param \ReflectionParameter[] $parameters
+     * @param array $steps
+     *
+     * @return array
+     */
+    protected function getGherkinNotationLinesFor($method, $parameters, $steps)
+    {
+        $parameterNames = $this->extractParameterNames($parameters);
+
+        $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
+
+        $parameterNamesAndStopwords = [];
+        for ($i = 0; $i < count($words); $i++) {
+            if (false !== ($parameterPos = array_search($words[$i], $parameterNames))) {
+                $stopWordAndParameterName = $i > 0 && in_array($words[$i - 1], $this->stopWords) ?
+                    $words[$i - 1] : 'and';
+                $parameterNamesAndStopwords[$parameterNames[$parameterPos]] = $stopWordAndParameterName;
+                unset($wordsWithoutStopwords[$i]);
+                unset($wordsWithoutStopwords[$i - 1]);
+                continue;
+            }
+        }
+
+        $lines = [];
+        foreach ($steps as $step) {
+            $lastLineIndex = empty($lines) ? 0 : count($lines);
+
+            $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
+                implode(' ', $wordsWithoutStopwords));
+
+            foreach ($parameters as $parameter) {
+                $parameterName = $parameter->getName();
+                $parameterPosition = array_search($parameterName, $parameterNames);
+
+                $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
+                    $parameterNamesAndStopwords[$parameterName]
+                    : 'and';
+
+                if (0 !== $parameterPosition ||
+                    (isset($parameterNamesAndStopwords[$parameterName])
+                        && in_array($parameterNamesAndStopwords[$parameterName], $this->jumpingStopWords)
+                    )
+                ) {
+                    $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
+                        $parameterNamesAndStopwords[$parameterName]
+                        : 'and';
+                    $stopWordAndParameterName = $stopWord . ' ' . $parameterName;
+                } else {
+                    $stopWordAndParameterName = $parameterName;
+                }
+                if (!$parameter->isDefaultValueAvailable()) {
+                    $lineFrags = explode(' ', $lines[$lastLineIndex]);
+                    $lineLastWord = end($lineFrags);
+                    if (!in_array($lineLastWord, $this->stopWords)
+                        && $parameterPosition === 0
+                        && !in_array($stopWord, $this->jumpingStopWords)
+                    ) {
+                        $resultLine = sprintf('%s :%s', $lines[$lastLineIndex], $parameterName);
+                    } else {
+                        $resultLine = sprintf('%s %s :%s', $lines[$lastLineIndex], $stopWordAndParameterName, $parameterName);
+                    }
+                    $lines[$lastLineIndex] = $lastLine = $resultLine;
+                } else {
+                    $lastLine = sprintf('%s %s :%s', $lastLine, $stopWordAndParameterName, $parameterName);
+                    $lines[] = $lastLine;
+                }
+            }
+        }
+        return $lines;
+    }
+
+    /**
+     * @param $parameters
+     * @return array
+     */
+    protected function extractParameterNames($parameters)
+    {
+        $parameterNames = [];
+        if (!empty($parameters)) {
+            $parameterNames = array_map(function (\ReflectionParameter $parameter) {
+                return $parameter->getName();
+            }, $parameters);
+            return $parameterNames;
+        }
+        return $parameterNames;
     }
 }
