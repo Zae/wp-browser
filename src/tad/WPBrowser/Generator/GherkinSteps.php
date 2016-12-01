@@ -79,7 +79,9 @@ EOF;
         return \$this->getScenario()->runStep(new \Codeception\Step\Action('{{method}}', \$args));
     }
 EOF;
-    protected $stopWords = ['see', 'have', 'and', 'or', 'with', 'to'];
+
+    protected $stopWords = ['see', 'have', 'and', 'or', 'with', 'to', 'in'];
+    protected $jumpingStopWords = ['see', 'have', 'with', 'in'];
 
     /**
      * @var string
@@ -127,11 +129,6 @@ EOF;
             ->produce();
     }
 
-    protected function generateHash()
-    {
-        return (md5(serialize($this->suite) . serialize($this->settings)));
-    }
-
     /**
      * @return string
      * @gherkin given, when, then
@@ -164,67 +161,25 @@ EOF;
         return implode(PHP_EOL, $methods);
     }
 
-    /**
-     * @param array $steps
-     * @param string $module
-     * @param string $method
-     *
-     * @return string
-     */
-    protected function generateGherkinStepsNotations($steps, $module, $method)
+    protected function shouldSkipMethod($module, $method)
     {
-        $ref = new \ReflectionMethod($module, $method);
-        $parameters = $ref->getParameters();
+        $docBlockFactory = DocBlockFactory::createInstance();
+        $docBlock = (new \ReflectionMethod($module, $method))->getDocComment();
 
-        $parameterNames = [];
-        if (!empty($parameters)) {
-            $parameterNames = array_map(function (\ReflectionParameter $parameter) {
-                return $parameter->getName();
-            }, $parameters);
+        if (empty($docBlock)) {
+            return false;
         }
 
-        $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
+        $docBlock = $docBlockFactory->create($docBlock);
+        $gherkinTags = $docBlock->getTagsByName('gherkin');
 
-        $parameterNamesAndStopwords = [];
-        for ($i = 0; $i < count($words); $i++) {
-            if (false !== ($parameterPos = array_search($words[$i], $parameterNames))) {
-                $stopWord = $i > 0 && in_array($words[$i - 1], $this->stopWords) ?
-                    $words[$i - 1] : 'and';
-                $parameterNamesAndStopwords[$parameterNames[$parameterPos]] = $stopWord;
-                unset($wordsWithoutStopwords[$i]);
-                unset($wordsWithoutStopwords[$i - 1]);
-                continue;
-            }
+        if (empty($gherkinTags)) {
+            return false;
         }
 
-        $lines = [];
-        foreach ($steps as $step) {
-            $lastLineIndex = empty($lines) ? 0 : count($lines);
-
-            $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
-                implode(' ', $wordsWithoutStopwords));
-
-            foreach ($parameters as $parameter) {
-                $parameterName = $parameter->getName();
-                $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
-                    $parameterNamesAndStopwords[$parameterName]
-                    : 'and';
-                if (!$parameter->isDefaultValueAvailable()) {
-                    $lines[$lastLineIndex] = $lastLine = array_search($parameter, $parameters) !== $lastLineIndex ?
-                        sprintf('%s %s :%s', $lines[$lastLineIndex], $stopWord, $parameterName) :
-                        sprintf('%s :%s', $lines[$lastLineIndex], $parameterName);
-                } else {
-                    $lastLine = sprintf('%s %s :%s', $lastLine, $stopWord, $parameterName);
-                    $lines[] = $lastLine;
-                }
-            }
-        }
-
-        $doc = implode(PHP_EOL . "\t ", array_map(function ($line) {
-            return $line . '/';
-        }, $lines));
-
-        return $doc;
+        /** @var Generic $tag */
+        $tag = $gherkinTags[0];
+        return preg_match('/(N|n)(o|O)/', $tag->getDescription()->render());
     }
 
     /**
@@ -254,6 +209,93 @@ EOF;
     }
 
     /**
+     * @param array $steps
+     * @param string $module
+     * @param string $method
+     *
+     * @return string
+     */
+    protected function generateGherkinStepsNotations($steps, $module, $method)
+    {
+        $ref = new \ReflectionMethod($module, $method);
+        $parameters = $ref->getParameters();
+
+        $parameterNames = [];
+        if (!empty($parameters)) {
+            $parameterNames = array_map(function (\ReflectionParameter $parameter) {
+                return $parameter->getName();
+            }, $parameters);
+        }
+
+        $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
+
+        $parameterNamesAndStopwords = [];
+
+        for ($i = 0; $i < count($words); $i++) {
+            if (false !== ($parameterPos = array_search($words[$i], $parameterNames))) {
+                $stopWordAndParameterName = $i > 0 && in_array($words[$i - 1], $this->stopWords) ?
+                    $words[$i - 1] : 'and';
+                $parameterNamesAndStopwords[$parameterNames[$parameterPos]] = $stopWordAndParameterName;
+                unset($wordsWithoutStopwords[$i]);
+                unset($wordsWithoutStopwords[$i - 1]);
+                continue;
+            }
+        }
+
+        $lines = [];
+        foreach ($steps as $step) {
+            $lastLineIndex = empty($lines) ? 0 : count($lines);
+
+            $lastLine = $lines[$lastLineIndex] = sprintf('* @%s /I %s', ucfirst(trim($step)),
+                implode(' ', $wordsWithoutStopwords));
+
+            foreach ($parameters as $parameter) {
+                $parameterName = $parameter->getName();
+                $parameterPosition = array_search($parameterName, $parameterNames);
+
+                $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
+                    $parameterNamesAndStopwords[$parameterName]
+                    : 'and';
+
+                if (0 !== $parameterPosition ||
+                    (isset($parameterNamesAndStopwords[$parameterName])
+                        && in_array($parameterNamesAndStopwords[$parameterName], $this->jumpingStopWords)
+                    )
+                ) {
+                    $stopWord = isset($parameterNamesAndStopwords[$parameterName]) ?
+                        $parameterNamesAndStopwords[$parameterName]
+                        : 'and';
+                    $stopWordAndParameterName = $stopWord . ' ' . $parameterName;
+                } else {
+                    $stopWordAndParameterName = $parameterName;
+                }
+                if (!$parameter->isDefaultValueAvailable()) {
+                    $lineFrags = explode(' ', $lines[$lastLineIndex]);
+                    $lineLastWord = end($lineFrags);
+                    if (!in_array($lineLastWord, $this->stopWords)
+                        && $parameterPosition === 0
+                        && !in_array($stopWord, $this->jumpingStopWords)
+                    ) {
+                        $resultLine = sprintf('%s :%s', $lines[$lastLineIndex], $parameterName);
+                    } else {
+                        $resultLine = sprintf('%s %s :%s', $lines[$lastLineIndex], $stopWordAndParameterName, $parameterName);
+                    }
+                    $lines[$lastLineIndex] = $lastLine = $resultLine;
+                } else {
+                    $lastLine = sprintf('%s %s :%s', $lastLine, $stopWordAndParameterName, $parameterName);
+                    $lines[] = $lastLine;
+                }
+            }
+        }
+
+        $doc = implode(PHP_EOL . "\t ", array_map(function ($line) {
+            return $line . '/';
+        }, $lines));
+
+        return $doc;
+    }
+
+    /**
      * @param string $module
      * @param string $method
      *
@@ -270,6 +312,11 @@ EOF;
         }
 
         return implode(', ', array_map([$this, 'getEntryForParameter'], $params));
+    }
+
+    protected function generateHash()
+    {
+        return (md5(serialize($this->suite) . serialize($this->settings)));
     }
 
     /**
@@ -303,26 +350,5 @@ EOF;
 
             return sprintf('%s $%s = %s', $type, $name, $defaultValue);
         }
-    }
-
-    protected function shouldSkipMethod($module, $method)
-    {
-        $docBlockFactory = DocBlockFactory::createInstance();
-        $docBlock = (new \ReflectionMethod($module, $method))->getDocComment();
-
-        if (empty($docBlock)) {
-            return false;
-        }
-
-        $docBlock = $docBlockFactory->create($docBlock);
-        $gherkinTags = $docBlock->getTagsByName('gherkin');
-
-        if (empty($gherkinTags)) {
-            return false;
-        }
-
-        /** @var Generic $tag */
-        $tag = $gherkinTags[0];
-        return preg_match('/(N|n)(o|O)/', $tag->getDescription()->render());
     }
 }

@@ -182,6 +182,29 @@ EOF;
         }));
     }
 
+    protected function backupSuiteConfig()
+    {
+        copy($this->targetSuiteConfigFile, $this->suiteConfigBackup);
+        $this->targetSuiteConfig = Yaml::parse(file_get_contents($this->targetSuiteConfigFile));
+    }
+
+    protected function setSuiteModules(array $modules)
+    {
+        $shortModules = array_map(function ($module) {
+            $frags = explode('\\', $module);
+            return end($frags);
+        }, $modules);
+
+        foreach ($this->testModules as $testModule) {
+            if (in_array(basename($testModule, '.php'), $shortModules)) {
+                require_once $testModule;
+            }
+        }
+
+        $this->targetSuiteConfig['modules']['enabled'] = $modules;
+        file_put_contents($this->targetSuiteConfigFile, Yaml::dump($this->targetSuiteConfig));
+    }
+
     /**
      * @test
      * it should generate given, when and then step for method by default
@@ -519,53 +542,6 @@ EOF;
         $this->assertEquals($expected, $arguments);
     }
 
-
-    protected function _before()
-    {
-        $this->targetContextFile = Configuration::supportDir() . '/_generated/SteppifytestGherkinSteps.php';
-        $this->targetSuiteConfigFile = codecept_root_dir('tests/steppifytest.suite.dist.yml');
-        $this->suiteConfigBackup = codecept_root_dir('tests/steppifytest.suite.dist.yml.backup');
-
-        $this->testModules = new FilesystemIterator(codecept_data_dir('modules'),
-            FilesystemIterator::CURRENT_AS_PATHNAME);
-    }
-
-    protected function _after()
-    {
-        $pattern = Configuration::supportDir() . '_generated/SteppifytestGherkinSteps*.php';
-        foreach (glob($pattern) as $file) {
-            unlink($file);
-        }
-
-        if (file_exists($this->suiteConfigBackup)) {
-            unlink($this->targetSuiteConfigFile);
-            rename($this->suiteConfigBackup, $this->targetSuiteConfigFile);
-        }
-    }
-
-    protected function backupSuiteConfig()
-    {
-        copy($this->targetSuiteConfigFile, $this->suiteConfigBackup);
-        $this->targetSuiteConfig = Yaml::parse(file_get_contents($this->targetSuiteConfigFile));
-    }
-
-    protected function setSuiteModules(array $modules)
-    {
-        $shortModules = array_map(function ($module) {
-            $frags = explode('\\', $module);
-            return end($frags);
-        }, $modules);
-
-        foreach ($this->testModules as $testModule) {
-            if (in_array(basename($testModule, '.php'), $shortModules)) {
-                require_once $testModule;
-            }
-        }
-
-        $this->targetSuiteConfig['modules']['enabled'] = $modules;
-        file_put_contents($this->targetSuiteConfigFile, Yaml::dump($this->targetSuiteConfig));
-    }
-
     /**
      * @param $trait
      * @param $id
@@ -704,7 +680,7 @@ EOF;
         $doSomethingMethod = $ref->getMethod('step_seeElementWithColor');
         $methodDockBlock = $doSomethingMethod->getDocComment();
 
-        $this->assertContains('@Then /I see element with :name and :color/', $methodDockBlock);
+        $this->assertContains('@Then /I see element :name with color :color/', $methodDockBlock);
     }
 
     /**
@@ -749,8 +725,10 @@ EOF;
 
         $methodDockBlock = $doSomethingMethod->getDocComment();
 
-        $this->assertContains('@Then /I see element in :context/', $methodDockBlock);
-        $this->assertContains('@Then /I see element in :context and :text/', $methodDockBlock);
+        // public function seeElementInContext($context, $text = null)
+
+        $this->assertContains('@Then /I see element in context :context/', $methodDockBlock);
+        $this->assertContains('@Then /I see element in context :context and text :text/', $methodDockBlock);
     }
 
     /**
@@ -789,6 +767,29 @@ EOF;
 
         $methodDockBlock = $doSomethingMethod->getDocComment();
 
-        $this->assertContains('@Given /I have :element with :color and :size/', $methodDockBlock);
+        $this->assertContains('@Given /I  have element :element with color :color and size :size/', $methodDockBlock);
+    }
+
+    protected function _before()
+    {
+        $this->targetContextFile = Configuration::supportDir() . '/_generated/SteppifytestGherkinSteps.php';
+        $this->targetSuiteConfigFile = codecept_root_dir('tests/steppifytest.suite.dist.yml');
+        $this->suiteConfigBackup = codecept_root_dir('tests/steppifytest.suite.dist.yml.backup');
+
+        $this->testModules = new FilesystemIterator(codecept_data_dir('modules'),
+            FilesystemIterator::CURRENT_AS_PATHNAME);
+    }
+
+    protected function _after()
+    {
+        $pattern = Configuration::supportDir() . '_generated/SteppifytestGherkinSteps*.php';
+        foreach (glob($pattern) as $file) {
+            unlink($file);
+        }
+
+        if (file_exists($this->suiteConfigBackup)) {
+            unlink($this->targetSuiteConfigFile);
+            rename($this->suiteConfigBackup, $this->targetSuiteConfigFile);
+        }
     }
 }
