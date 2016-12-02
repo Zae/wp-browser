@@ -2,14 +2,8 @@ class_name: SteppifytestTester
 modules:
     enabled:
         - \Helper\Steppifytest
-        - PHPBrowser
         - WPDb
     config:
-        PHPBrowser:
-            url: 'http://wordpress.dev'
-            adminUsername: 'admin'
-            adminPassword: 'admin'
-            adminPath: '/wp-admin'
         WPDb:
             dsn: 'mysql:host=127.0.0.1;dbname=test'
             user: 'root'
