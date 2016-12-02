@@ -92,10 +92,31 @@ EOF;
      * @var array
      */
     protected $settings;
+
+    /**
+     * @var Di
+     */
     protected $di;
+
+    /**
+     * @var ModuleContainer
+     */
     protected $moduleContainer;
+
+    /**
+     * @var array
+     */
     protected $modules;
+
+    /**
+     * @var array
+     */
     protected $actions;
+
+    /**
+     * @var array
+     */
+    protected $currentMethodConfig;
 
     public function __construct($suite, array $settings = [])
     {
@@ -118,14 +139,12 @@ EOF;
     {
         $namespace = rtrim($this->settings['namespace'], '\\');
 
-        $methods = $this->getMethods();
-
         return (new Template($this->template))
             ->place('hash', $this->generateHash())
             ->place('namespace', $namespace ? $namespace . '\\' : '')
             ->place('name', ucfirst($this->suite))
             ->place('postfix', $this->settings['postfix'])
-            ->place('methods', $methods)
+            ->place('methods', $this->getMethods())
             ->produce();
     }
 
@@ -158,11 +177,19 @@ EOF;
                 ->produce();
         }
 
-        return implode(PHP_EOL, $methods);
+        return implode(PHP_EOL . PHP_EOL, $methods);
     }
 
     protected function shouldSkipMethod($module, $method)
     {
+        $configSkipped = !empty($this->settings['steps-config']['modules'][$module]['exclude']) ?
+            (array)$this->settings['steps-config']['modules'][$module]['exclude']
+            : [];
+
+        if (in_array($method, $configSkipped)) {
+            return true;
+        }
+
         $docBlockFactory = DocBlockFactory::createInstance();
         $docBlock = (new \ReflectionMethod($module, $method))->getDocComment();
 
@@ -192,39 +219,36 @@ EOF;
     {
         $docBlockFactory = DocBlockFactory::createInstance();
         $docComment = (new \ReflectionMethod($module, $method))->getDocComment();
-        $steps = ['given', 'when', 'then'];
 
-        if (!empty($docComment)) {
-            $docBlock = $docBlockFactory->create($docComment);
-            $gherkinTags = $docBlock->getTagsByName('gherkin');
+        $methodConfig = !empty($this->settings['steps-config']['modules'][$module]['methods'][$method]) ?
+            $this->settings['steps-config']['modules'][$module]['methods'][$method] :
+            [];
 
-            if (!empty($gherkinTags)) {
-                /** @var Generic $gherkingTag */
-                $gherkingTag = reset($gherkinTags);
-                $steps = preg_split('/\\s*,\\s*/', $gherkingTag->getDescription()->render());
-            }
+        if (empty($methodConfig['generates'])) {
+            $steps = $this->getStepsFromMethodDocBlock($docComment, $docBlockFactory);
+        } else {
+            $steps = $methodConfig['generates'];
         }
 
-        return $this->generateGherkinStepsNotations($steps, $module, $method);
+        return $this->generateGherkinStepsNotations($steps, $module, $method, $methodConfig);
     }
 
     /**
      * @param array $steps
      * @param string $module
      * @param \ReflectionMethod $method
+     * @param array $methodConfig
      *
      * @return string
      */
-    protected function generateGherkinStepsNotations($steps, $module, $method)
+    protected function generateGherkinStepsNotations(array $steps, $module, $method, array $methodConfig)
     {
         $ref = new \ReflectionMethod($module, $method);
         $parameters = $ref->getParameters();
 
-        $lines = $this->getGherkinNotationLinesFor($method, $parameters, $steps);
+        $lines = $this->getGherkinNotationLinesFor($method, $parameters, $steps, $methodConfig);
 
-        $doc = implode(PHP_EOL . "\t ", array_map(function ($line) {
-            return $line . '/';
-        }, $lines));
+        $doc = implode(PHP_EOL . "\t ", $lines);
 
         return $doc;
     }
@@ -236,15 +260,27 @@ EOF;
      *
      * @return array
      */
-    protected function getGherkinNotationLinesFor($method, $parameters, $steps)
+    protected function getGherkinNotationLinesFor($method, $parameters, $steps, array $methodConfig)
     {
         $parameterNames = $this->extractParameterNames($parameters);
 
-        $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
-
-        $parameterNamesAndStopwords = $this->extractParameterNamesAndStopWords($words, $parameterNames, $wordsWithoutStopwords);
-
-        $lines = $this->buildGherkinLinesForSteps($steps, $parameters, $wordsWithoutStopwords, $parameterNamesAndStopwords);
+        if (!empty($methodConfig['step'])) {
+            $lines = [];
+            $generates = (array)$methodConfig['generates'];
+            array_walk($generates, function ($generatedStep) use ($methodConfig, &$lines) {
+                $stepLines = array_map(function ($stepTemplate) use ($generatedStep) {
+                    return '* @' . ucfirst($generatedStep) . ' /' . trim($stepTemplate, '/') . '/';
+                }, (array)$methodConfig['step']);
+                $lines = array_merge($lines, $stepLines);
+            });
+        } else {
+            $wordsWithoutStopwords = $words = array_map('strtolower', preg_split('/(?=[A-Z_])/', $method));
+            $parameterNamesAndStopwords = $this->extractParameterNamesAndStopWords($words, $parameterNames, $wordsWithoutStopwords);
+            $lines = $this->buildGherkinLinesForSteps($steps, $parameters, $wordsWithoutStopwords, $parameterNamesAndStopwords);
+            $lines = array_map(function ($line) {
+                return $line . '/';
+            }, $lines);
+        }
 
         return $lines;
     }
@@ -402,5 +438,29 @@ EOF;
 
             return sprintf('%s $%s = %s', $type, $name, $defaultValue);
         }
+    }
+
+    /**
+     * @param $docComment
+     * @param $docBlockFactory
+     * @return array
+     */
+    protected function getStepsFromMethodDocBlock($docComment, $docBlockFactory)
+    {
+        $steps = ['given', 'when', 'then'];
+
+        if (!empty($docComment)) {
+            $docBlock = $docBlockFactory->create($docComment);
+            $gherkinTags = $docBlock->getTagsByName('gherkin');
+
+            if (!empty($gherkinTags)) {
+                /** @var Generic $gherkingTag */
+                $gherkingTag = reset($gherkinTags);
+                $steps = preg_split('/\\s*,\\s*/', $gherkingTag->getDescription()->render());
+                return $steps;
+            }
+            return $steps;
+        }
+        return $steps;
     }
 }

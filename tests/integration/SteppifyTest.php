@@ -811,6 +811,83 @@ EOF;
         $this->assertContains('@Given /I  have shape :shape with color :color and size :size/', $methodDockBlock);
     }
 
+    /**
+     * @test
+     * it should accept a gherkin steps generation configuration file
+     */
+    public function it_should_accept_a_gherkin_steps_generation_configuration_file()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleFour']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id,
+            '--steps-config' => codecept_data_dir('steppify/configs/module-4-1.yml')
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_haveElementInDatabase'));
+
+        $reflectedMethod = $ref->getMethod('step_haveElementInDatabase');
+
+        $methodDockBlock = $reflectedMethod->getDocComment();
+
+        $this->assertContains('@Given /I have element :element in database/', $methodDockBlock);
+        $this->assertNotContains('@When /I have element :element in database/', $methodDockBlock);
+        $this->assertNotContains('@Then /I have element :element in database/', $methodDockBlock);
+    }
+
+    /**
+     * @test
+     * it should allow specifying a module method should be skipped in the configuration file
+     */
+    public function it_should_allow_specifying_a_module_method_should_be_skipped_in_the_configuration_file()
+    {
+        $this->backupSuiteConfig();
+        $this->setSuiteModules(['\tad\WPBrowser\Tests\ModuleFive']);
+
+        $app = new Application();
+        $this->addCommand($app);
+        $command = $app->find('steppify');
+        $commandTester = new CommandTester($command);
+
+        $id = uniqid();
+
+        $commandTester->execute([
+            'command' => $command->getName(),
+            'suite' => 'steppifytest',
+            '--postfix' => $id,
+            '--steps-config' => codecept_data_dir('steppify/configs/module-5-1.yml')
+        ]);
+
+        $class = 'SteppifytestGherkinSteps' . $id;
+
+        require_once(Configuration::supportDir() . '_generated/' . $class . '.php');
+
+        $this->assertTrue(trait_exists('_generated\\' . $class));
+
+        $ref = new ReflectionClass('_generated\SteppifytestGherkinSteps' . $id);
+
+        $this->assertTrue($ref->hasMethod('step_methodOne'));
+        $this->assertFalse($ref->hasMethod('step_methodTwo'));
+    }
+
     protected function _before()
     {
         $this->targetContextFile = Configuration::supportDir() . '/_generated/SteppifytestGherkinSteps.php';

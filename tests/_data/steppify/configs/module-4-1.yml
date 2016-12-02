@@ -1,0 +1,6 @@
+modules:
+  \tad\WPBrowser\Tests\ModuleFour:
+    methods:
+      haveElementInDatabase:
+        generates: [given]
+        step: I have element :element in database
