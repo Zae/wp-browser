@@ -32,14 +32,6 @@ class CleanDatabase extends Module
     }
 
     /**
-     * Listen to the afterSuite hook of codeception
-     */
-    public function _afterSuite()
-    {
-        $this->dropEntireDatabase();
-    }
-
-    /**
      * Drop all the tables that begin with the prefix from the config.
      */
     private function dropEntireDatabase()
