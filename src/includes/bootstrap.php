@@ -107,6 +107,12 @@ if ( ! defined( 'WPCEPT_ISOLATED_INSTALL' ) || false === WPCEPT_ISOLATED_INSTALL
 		codecept_debug( "Active plugins:\n\t- " . implode( "\n\t- ", $uniqueActivePlugins ) );
 	}
 
+    if (!empty($this->config['constants'])) {
+        foreach ( $this->config['constants'] as $key => $value ) {
+            $environment['constants'][ $key ] = $value;
+        }
+    }
+
 	codecept_debug( 'Installing WordPress in isolated process...' );
 	ob_start();
 	$isolatedInstallationScript = dirname( __FILE__ ) . '/isolated-install.php';
