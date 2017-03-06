@@ -156,6 +156,14 @@ if ( isset( $GLOBALS['wp_tests_options'] ) ) {
 	}
 }
 
+if (!empty($this->config['constants'])) {
+    foreach ( $this->config['constants'] as $key => $value ) {
+        if ( ! defined( $key ) ) {
+            define($key, $value);
+        }
+    }
+}
+
 // Load WordPress: "untrailingslash" ABSPATH first of all to avoid double slashes in filepath,
 // while still working if ABSPATH did not include a trailing slash
 require_once rtrim( ABSPATH, '/\\' ) . '/wp-settings.php';
