@@ -26,9 +26,7 @@ trait WPBrowserMethods
 	public function loginAs($username, $password)
 	{
 		$this->amOnPage($this->loginUrl);
-		$this->fillField('#user_login', $username);
-		$this->fillField('#user_pass', $password);
-		$this->click('#wp-submit');
+		$this->submitForm('#loginform', ['log' =>$username,'pwd' => $password ,'testcookie' => '1', 'redirect_to' => ''], '#wp-submit');
 
 		return [
 			'username' => $username,
@@ -73,13 +71,21 @@ trait WPBrowserMethods
 	 *
 	 * The method will presume the browser is in the plugin screen already.
 	 *
-	 * @param  string $pluginSlug The plugin slug, like "hello-dolly".
+	 * @param  string|array $pluginSlug The plugin slug, like "hello-dolly" or a list of plugin slugs.
 	 *
 	 * @return void
 	 */
 	public function activatePlugin($pluginSlug)
 	{
-		$this->click("table.plugins tr[data-slug='{$pluginSlug}'] span.activate > a:first-of-type");
+		$plugins = (array) $pluginSlug;
+		foreach ($plugins as $plugin) {
+			$option = '//*[@data-slug="' . $plugin . '"]/th/input';
+			$this->scrollTo($option, 0, -40);
+			$this->checkOption($option);
+		}
+		$this->scrollTo('select[name="action"]', 0, -40);
+		$this->selectOption('action', 'activate-selected');
+		$this->click("#doaction");
 	}
 
 	/**
@@ -87,13 +93,21 @@ trait WPBrowserMethods
 	 *
 	 * The method will presume the browser is in the plugin screen already.
 	 *
-	 * @param  string $pluginSlug The plugin slug, like "hello-dolly".
+	 * @param  string|array $pluginSlug The plugin slug, like "hello-dolly" or a list of plugin slugs.
 	 *
 	 * @return void
 	 */
 	public function deactivatePlugin($pluginSlug)
 	{
-		$this->click("table.plugins tr[data-slug='{$pluginSlug}'] span.deactivate > a:first-of-type");
+		$plugins = (array) $pluginSlug;
+		foreach ($plugins as $plugin) {
+			$option = '//*[@data-slug="' . $plugin . '"]/th/input';
+			$this->scrollTo($option, 0, -40);
+			$this->checkOption($option);
+		}
+		$this->scrollTo('select[name="action"]', 0, -40);
+		$this->selectOption('action', 'deactivate-selected');
+		$this->click("#doaction");
 	}
 
 	/**
@@ -183,7 +197,7 @@ trait WPBrowserMethods
 	 *
 	 * Allows for class-based error checking to decouple from internationalization.
 	 *
-	 * @param array $classes A list of classes the error notice should have.
+	 * @param array|string $classes A list of classes the error notice should have.
 	 *
 	 * @return void
 	 */
@@ -213,7 +227,7 @@ trait WPBrowserMethods
 	 *
 	 * Allows for class-based error checking to decouple from internationalization.
 	 *
-	 * @param array $classes A list of classes the message should have.
+	 * @param array|string $classes A list of classes the message should have.
 	 *
 	 * @return void
 	 */
@@ -242,8 +256,49 @@ trait WPBrowserMethods
 		return $this->grabCookie($pattern);
 	}
 
+	/**
+	 * Goes to a page relative to the admin URL.
+	 *
+	 * @param string $path
+	 */
 	public function amOnAdminPage($path)
 	{
 		$this->amOnPage($this->adminPath . '/' . ltrim($path, '/'));
+	}
+
+	/**
+	 * Goes to the `admin-ajax.php` page.
+	 *
+	 * @return null|string
+	 */
+	public function amOnAdminAjaxPage()
+	{
+		return $this->amOnAdminPage('admin-ajax.php');
+	}
+
+	/**
+	 * Goes to the cron page.
+	 *
+	 * Useful to trigger cron jobs.
+	 *
+	 * @return null|string
+	 */
+	public function amOnCronPage()
+	{
+		return $this->amOnPage('/wp-cron.php');
+	}
+
+	/**
+	 * Goes to the post edit page for the post with the specified post ID.
+	 *
+	 * @param int $id
+	 */
+	public function amEditingPostWithId($id)
+	{
+		if (!is_numeric($id) && intval($id) == $id) {
+			throw new \InvalidArgumentException('ID must be an int value');
+		}
+
+		$this->amOnAdminPage('/post.php?post=' . $id . '&action=edit');
 	}
 }

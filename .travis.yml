@@ -8,6 +8,14 @@ notifications:
 php:
   - '5.6'
   - '7.0'
+  - '7.1'
+  - nightly
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - php: nightly
+    - env: wpVersion=nightly
 
 services:
   - mysql
@@ -18,8 +26,21 @@ cache:
     - $HOME/.composer/cache
 
 env:
-  - wpVersion=latest wpFolder=/tmp/wordpress wpDbName=test wpLoaderDbName=wploader wpDbPrefix=wp_ wpUrl=wordpress.dev wpAdminUsername=admin wpAdminPassword=admin wpSubdomain1=test1 wpSubdomain1Title="Test Subdomain 1" wpSubdomain2=test2 wpSubdomain2Title="Test Subdomain 2"
-  - wpVersion=nightly wpFolder=/tmp/wordpress wpDbName=test wpLoaderDbName=wploader wpDbPrefix=wp_ wpUrl=wordpress.dev wpAdminUsername=admin wpAdminPassword=admin wpSubdomain1=test1 wpSubdomain1Title="Test Subdomain 1" wpSubdomain2=test2 wpSubdomain2Title="Test Subdomain 2"
+  global:
+    - wpFolder=/tmp/wordpress
+    - wpDbName=test
+    - wpLoaderDbName=wploader
+    - wpDbPrefix=wp_
+    - wpUrl=wordpress.dev
+    - wpAdminUsername=admin
+    - wpAdminPassword=admin
+    - wpSubdomain1=test1
+    - wpSubdomain1Title="Test Subdomain 1"
+    - wpSubdomain2=test2
+    - wpSubdomain2Title="Test Subdomain 2"
+  matrix:
+    - wpVersion=latest
+    - wpVersion=nightly
 
 before_install:
   - mysql -e "create database IF NOT EXISTS $wpDbName;" -uroot
@@ -50,12 +71,15 @@ before_script:
   - wp site create --slug=$wpSubdomain1 --title="$wpSubdomain1Title"
   - wp site create --slug=$wpSubdomain2 --title="$wpSubdomain2Title"
 
+  # flush rewrite rules
+  - wp rewrite structure '/%postname%/'
+
   # export a dump of the just installed database to the _data folder
   - cd /tmp/wordpress
   - wp db export $TRAVIS_BUILD_DIR/tests/_data/dump.sql
 
   # set up Apache virtual host
-  - sudo env "PATH=$PATH" apache-setup --host="127.0.0.1" --url="$wpUrl" --dir="/tmp/wordpress" 
+  - sudo env "PATH=$PATH" apache-setup --host="127.0.0.1" --url="$wpUrl" --dir="/tmp/wordpress"
 
   # set the path to the phantomjs bin in Phantoman
   - sed -i "s_phantomjsbin_$(which phantomjs)_" $TRAVIS_BUILD_DIR/codeception.dist.yml
@@ -65,7 +89,6 @@ before_script:
 
 script:
   - codecept run unit
-  - codecept run integration
   - codecept run acceptance
   - codecept run phantomjs
   - codecept run functional
@@ -73,3 +96,4 @@ script:
   - codecept run wpmodule
   - codecept run wploadersuite
   - codecept run muloader
+  - codecept run cli

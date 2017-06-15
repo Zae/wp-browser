@@ -4,6 +4,62 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ##[unreleased] Unreleased
 
+##[1.21.3] 2017-06-07
+### Fixed
+- load file required by `attachment` factory before accessing it (`WPLoader` module in `loadOnly` configuration)
+- domain replacement in SQL dump file in `WPDb` module
+
+##[1.21.2] 2017-06-06
+### Fixed
+- added missing vars to bootstrap template
+
+##[1.21.1] 2017-06-05
+### Fixed
+- PHP7 syntax issue
+
+##[1.21.0] 2017-06-05
+### Added
+- support for Codeception `2.3`
+- experimental support for PHPUnit `6.0`
+- support for user-land SQL dump file import in `WPDb` module (thanks @sc0ttkclark)
+
+### Changed
+- the `wpcept` command is now deprecated in favour of a template based solution
+
+### Removed
+- the `generate:phpunitbootstrap` command
+
+##[1.20.1] 2017-05-23
+### Changed
+- locked `codeception/codeception` version at `~2.2.0` while support for version `2.3` is developed
+- moved the `codeception/codeception` requirement to the `require` section
+- updated the code of `dontHaveInDatabase` type methods of `WPDb` to remove meta of handled objects by default
+ 
+##[1.20.0] 2017-05-15
+### Added
+- added support for "just loading WordPress" to the WPLoader module using the `loadOnly` parameter
+
+##[1.19.15] 2017-05-01
+### Changed
+- added Y offset to the plugin activation functions to avoid overlap with the admin bar
+
+##[1.19.14] 2017-04-28
+### Fixed
+- wording and example about `window_size` parameter of `WPWebDriver` module in the README (thanks @petemolinero)
+- wording of the `WordPress` module description (thanks @azavisha)
+- issue where plugin would not be activated when alpha positioned at the bottom of a long list (issue #64)
+
+### Changed
+- allow the `activatePlugin` and `deactivatePlugin` of `WPBrowser` and `WPWebDriver` modules to accept an array of plugin slugs to activate
+
+##[1.19.13] 2017-03-25
+### Changed
+- updated `wp-cli` version requirement to `1.1` (thanks @TangRufus)
+
+##[1.19.12] 2017-03-10
+### Fixed
+- wait for login form elements in `loginAs` and `loginAsAdmin` `WpWebDriver' methods (thanks @TangRufus)
+
 ##[1.19.11] 2017-02-20
 ### Fixed
 - missing `$_SERVER['SERVER_NAME']` var in the `WordPress` connector that would trigger notices from WordPress `general-template.php` file
@@ -513,7 +569,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Reference to ModuleConfigException class in WPLoader class.
 
-[unreleased]: https://github.com/lucatume/wp-browser/compare/1.19.11...HEAD
+[unreleased]: https://github.com/lucatume/wp-browser/compare/1.21.3...HEAD
+[1.21.3]: https://github.com/lucatume/wp-browser/compare/1.21.2...1.21.3
+[1.21.2]: https://github.com/lucatume/wp-browser/compare/1.21.1...1.21.2
+[1.21.1]: https://github.com/lucatume/wp-browser/compare/1.21.0...1.21.1
+[1.21.0]: https://github.com/lucatume/wp-browser/compare/1.20.1...1.21.0
+[1.20.1]: https://github.com/lucatume/wp-browser/compare/1.20.0...1.20.1
+[1.20.0]: https://github.com/lucatume/wp-browser/compare/1.19.15...1.20.0
+[1.19.15]: https://github.com/lucatume/wp-browser/compare/1.19.14...1.19.15
+[1.19.14]: https://github.com/lucatume/wp-browser/compare/1.19.13...1.19.14
+[1.19.13]: https://github.com/lucatume/wp-browser/compare/1.19.12...1.19.13
+[1.19.12]: https://github.com/lucatume/wp-browser/compare/1.19.11...1.19.12
 [1.19.11]: https://github.com/lucatume/wp-browser/compare/1.19.10...1.19.11
 [1.19.10]: https://github.com/lucatume/wp-browser/compare/1.19.9...1.19.10
 [1.19.9]: https://github.com/lucatume/wp-browser/compare/1.19.8...1.19.9
