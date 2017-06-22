@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ##[unreleased] Unreleased
 
+##[1.21.4] 2017-06-21
+### Fixed
+- `WPDb` module sql dump file handling issue (#81)
+- `WordPress` module issue related to IP spoofing
+
 ##[1.21.3] 2017-06-07
 ### Fixed
 - load file required by `attachment` factory before accessing it (`WPLoader` module in `loadOnly` configuration)
@@ -569,7 +574,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Reference to ModuleConfigException class in WPLoader class.
 
-[unreleased]: https://github.com/lucatume/wp-browser/compare/1.21.3...HEAD
+[unreleased]: https://github.com/lucatume/wp-browser/compare/1.21.4...HEAD
+[1.21.4]: https://github.com/lucatume/wp-browser/compare/1.21.2...1.21.4
 [1.21.3]: https://github.com/lucatume/wp-browser/compare/1.21.2...1.21.3
 [1.21.2]: https://github.com/lucatume/wp-browser/compare/1.21.1...1.21.2
 [1.21.1]: https://github.com/lucatume/wp-browser/compare/1.21.0...1.21.1
