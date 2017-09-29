@@ -71,6 +71,36 @@ if ( version_compare( $wpdb->db_version(), '5.5.3', '>=' ) ) {
 }
 $wpdb->select( DB_NAME, $wpdb->dbh );
 
+/**
+ * Before dropping the tables include the active plugins as those might define
+ * additional tables that should be dropped.
+ **/
+foreach ( $activePlugins as $activePlugin ) {
+	printf("Including plugin [%s] files\n", $activePlugin);
+	$path = realpath(WP_PLUGIN_DIR . '/' . $activePlugin);
+	if (!file_exists($path)) {
+		$path = dirname($configuration['root']) . '/' . $activePlugin;
+	}
+	include_once $path;
+}
+
+echo "\nThe following tables will be dropped: ", "\n\t- ", implode( "\n\t- ", $wpdb->tables ), "\n";
+
+echo "\nInstalling WordPress...\n";
+
+foreach ( $wpdb->tables() as $table => $prefixed_table ) {
+	$wpdb->query( "DROP TABLE IF EXISTS $prefixed_table" );
+}
+
+foreach ( $wpdb->tables( 'ms_global' ) as $table => $prefixed_table ) {
+	$wpdb->query( "DROP TABLE IF EXISTS $prefixed_table" );
+
+	// We need to create references to ms global tables.
+	if ( $multisite ) {
+		$wpdb->$table = $prefixed_table;
+	}
+}
+
 // Prefill a permalink structure so that WP doesn't try to determine one itself.
 add_action( 'populate_options', '_set_default_permalink_structure_for_tests' );
 

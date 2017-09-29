@@ -1,16 +1,24 @@
-# source: https://codex.wordpress.org/Nginx#WordPress_Multisite_subdomains_rules
 map $http_host $blogid {
     default       -999;
     #Ref: http://wordpress.org/extend/plugins/nginx-helper/
-    #include /var/www/wordpress/wp-content/plugins/nginx-helper/map.conf ;
-
+    #include %WP_FOLDER%/wp-content/plugins/nginx-helper/map.conf;
 }
 
 server {
-    server_name wp.localhost *.wp.localhost ;
+    listen 80;
 
-    root /var/www/html;
+    server_name %WP_DOMAIN% *.%WP_DOMAIN%;
+
+    root %WP_FOLDER%;
     index index.php;
+
+    client_body_in_file_only clean;
+    client_body_buffer_size 32K;
+
+    client_max_body_size 300M;
+
+    sendfile on;
+    send_timeout 300s;
 
     location / {
         try_files $uri $uri/ /index.php?$args ;
@@ -18,8 +26,9 @@ server {
 
     location ~ \.php$ {
         try_files $uri =404;
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        fastcgi_index index.php;
         include fastcgi_params;
-        fastcgi_pass php:9000;
     }
 
     #WPMU Files
@@ -33,7 +42,7 @@ server {
     #WPMU x-sendfile to avoid php readfile()
     location ^~ /blogs.dir {
         internal;
-        alias /var/www/html/wp-content/blogs.dir;
+        alias %WP_FOLDER%/wp-content/blogs.dir;
         access_log off;
         log_not_found off;
         expires max;

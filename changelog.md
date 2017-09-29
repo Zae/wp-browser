@@ -3,6 +3,70 @@ All notable changes after version 1.6.16 to this project will be documented in t
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ##[unreleased] Unreleased
+### Fixed
+- Travis CI tests
+
+##[1.21.18] 2017-09-26
+### Fixed
+- `WPDb`: a more efficient regex to parse the dump (thanks @slaFFik)
+- `WPDb`: avoid running the dump through URL replacement functions if `urlReplacement` has been deactivated in config (thanks @slaFFik)
+- `WPDb`: avoid running the dump through white space removal, thus loading it in memory, if `populator` is being used (thanks @slaFFik)
+
+##[1.21.17] 2017-08-21
+### Fixed
+- an issue where some checks could be made by the `WPTestCase` class on non-existing folders
+
+##[1.21.16] 2017-08-12
+### Fixed
+- an issue in the `WPFilesystem` module that would not allow scaffolding mu-plugins
+
+##[1.21.15] 2017-08-09
+### Fixed and changed
+- moved the `rrmdir` function to wp-browser `functions.php` file and removed it from the `tests/_support/functions.php` file
+
+##[1.21.14] 2017-08-02
+### Fixed
+- an issue with symbolic linking of the root dir
+
+##[1.21.13] 2017-07-28
+### Fixed
+- more sane support for `--quiet` and `--no-interaction` options in `WPBrowser` template (issue #95 cont.)
+
+##[1.21.12] 2017-07-26
+### Fixed
+- support for `--quiet` and `--no-interaction` options in `WPBrowser` template (issue #95)
+
+##[1.21.11] 2017-07-19
+### Fixed
+- an issue preventing writes in the `WPFilesystem::writeToUploadedFile` method
+
+### Added
+- `attachment` post type methods to the `WPDb` module
+
+##[1.21.10] 2017-07-14
+### Added
+- support for environments in the `rootFolder` parameter of the Symlinker extension
+
+##[1.21.9] 2017-07-14
+### Fixed
+- issue where users table would be set to `wp_users` in `WPDb::grabUserIdFromDatabase()` method (thanks @gundamew)
+
+##[1.21.8] 2017-07-12
+### Added
+- first version of the `WPFilesystem` module
+
+##[1.21.7] 2017-07-07
+### Fixed
+- removed excessive bracket in `WPBrowser` template
+
+##[1.21.6] 2017-07-06
+### Changed
+- switch to `.env` based configuration for tests
+- fix an issue where in some cases (e.g. CLI) `WPLoader` module set to `loadOnly: true` would generate errors
+
+##[1.21.5] 2017-06-30
+### Fixed
+- issue with `WPDb::haveOrUpdateInDatabase` method
 
 ##[1.21.4] 2017-06-21
 ### Fixed
@@ -574,7 +638,21 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Reference to ModuleConfigException class in WPLoader class.
 
-[unreleased]: https://github.com/lucatume/wp-browser/compare/1.21.4...HEAD
+[unreleased]: https://github.com/lucatume/wp-browser/compare/1.21.18...HEAD
+[1.21.18]: https://github.com/lucatume/wp-browser/compare/1.21.17...1.21.18
+[1.21.17]: https://github.com/lucatume/wp-browser/compare/1.21.16...1.21.17
+[1.21.16]: https://github.com/lucatume/wp-browser/compare/1.21.15...1.21.16
+[1.21.15]: https://github.com/lucatume/wp-browser/compare/1.21.14...1.21.15
+[1.21.14]: https://github.com/lucatume/wp-browser/compare/1.21.13...1.21.14
+[1.21.13]: https://github.com/lucatume/wp-browser/compare/1.21.12...1.21.13
+[1.21.12]: https://github.com/lucatume/wp-browser/compare/1.21.11...1.21.12
+[1.21.11]: https://github.com/lucatume/wp-browser/compare/1.21.10...1.21.11
+[1.21.10]: https://github.com/lucatume/wp-browser/compare/1.21.9...1.21.10
+[1.21.9]: https://github.com/lucatume/wp-browser/compare/1.21.8...1.21.9
+[1.21.8]: https://github.com/lucatume/wp-browser/compare/1.21.7...1.21.8
+[1.21.7]: https://github.com/lucatume/wp-browser/compare/1.21.6...1.21.7
+[1.21.6]: https://github.com/lucatume/wp-browser/compare/1.21.5...1.21.6
+[1.21.5]: https://github.com/lucatume/wp-browser/compare/1.21.4...1.21.5
 [1.21.4]: https://github.com/lucatume/wp-browser/compare/1.21.2...1.21.4
 [1.21.3]: https://github.com/lucatume/wp-browser/compare/1.21.2...1.21.3
 [1.21.2]: https://github.com/lucatume/wp-browser/compare/1.21.1...1.21.2
