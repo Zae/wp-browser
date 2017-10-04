@@ -71,19 +71,6 @@ if ( version_compare( $wpdb->db_version(), '5.5.3', '>=' ) ) {
 }
 $wpdb->select( DB_NAME, $wpdb->dbh );
 
-/**
- * Before dropping the tables include the active plugins as those might define
- * additional tables that should be dropped.
- **/
-foreach ( $activePlugins as $activePlugin ) {
-	printf("Including plugin [%s] files\n", $activePlugin);
-	$path = realpath(WP_PLUGIN_DIR . '/' . $activePlugin);
-	if (!file_exists($path)) {
-		$path = dirname($configuration['root']) . '/' . $activePlugin;
-	}
-	include_once $path;
-}
-
 echo "\nThe following tables will be dropped: ", "\n\t- ", implode( "\n\t- ", $wpdb->tables ), "\n";
 
 echo "\nInstalling WordPress...\n";
